@@ -1,0 +1,196 @@
+前言：
+https://blog.csdn.net/andyzhaojianhui/article/details/84324466
+
+    越是简单的东西，我们往往越是没有去把它明白，但我们大部分时间又常常在用，就像我们今天说的int与Integer的使用，我们程序员基本天天都在用，但是我今天没用详细弄清楚之前我也是不清楚，我们来看看这两个在用==号比较给我们带来的疑问。
+
+        先看看下面的代码，看看我们是否都会
+
+        @Test
+    public void testEquals() {
+        int int1 = 12;
+        int int2 = 12;
+        
+        Integer integer1 = new Integer(12);
+        Integer integer2 = new Integer(12);
+        Integer integer3 = new Integer(127);
+        
+        Integer a1 = 127; //或者写成Integer a1 = Integer.valueOf(127);
+        Integer a2 = 127;//或者写成Integer a2 = Integer.valueOf(127);
+        
+        Integer a = 128;
+        Integer b = 128;
+            
+        System.out.println("int1 == int2 -> " + (int1 == int2));                    
+        System.out.println("int1 == integer1 -> " + (int1 == integer1));            
+        System.out.println("integer1 == integer2 -> " + (integer1 == integer2));    
+        System.out.println("integer3 == a1 -> " + (integer3 == a1));                
+        System.out.println("a1 == a2 -> " + (a1 == a2));                            
+        System.out.println("a == b -> " + (a == b));                                                    
+    }   
+
+答案是：
+1、   int1 == int2 -> true
+2、   int1 == integer1 -> true
+3、   integer1 == integer2 -> false
+4、   integer3 == a1 -> false
+5、   a1 == a2 -> true
+6、   a == b -> false
+看看结果跟我们自己做的是不是都一样。
+
+        下面我们就来详细解释一下，为什么是上面的结果。（下面的序号就是对应的是上面的答案序号）
+
+          1、int1 == int2 为true，这个我就讲了，这个都知道
+
+          2、int1 == integer1，Integer是int的封装类，当Integer与int进行==比较时，Integer就会拆箱成一个int类型，所以还是相当于两个int类型进行比较，这里的Integer,不管是直接赋值，还是new创建的对象，只要跟int比较就会拆箱为int类型，所以就是相等的。
+
+          3、integer1 == integer2 -> false，这是两个都是对象类型，而且不会进行拆箱比较，所以不等
+
+          4、integer3 == a1 -> false , integer3是一个对象类型，而a1是一个常量它们存放内存的位置不一样，所以也不等，具体存在内存的位置看以看文章：点击打开链接
+
+          5、6   看起来是一模一样的为什么一个是true，一个是false，这是因为Integer作为常量时，对于-128到127之间的数，会进行缓存，也就是说int a1 = 127时,在范围之内，这个时候就存放在缓存中，当再创建a2时，java发现缓存中存在127这个数了，就直接取出来赋值给a2，所以a1 == a2的。当超过范围就是new Integer()来new一个对象了，所以a、b都是new Integer(128)出来的变量，所以它们不等。
+
+根据以上总结：
+
+    
+
+        ①、无论如何，Integer与new Integer不会相等。不会经历拆箱过程，因为它们存放内存的位置不一样。（要看具体位置，可以看看这篇文章：点击打开链接）
+
+        ②、两个都是非new出来的Integer，如果数在-128到127之间，则是true,否则为false。
+
+        ③、两个都是new出来的,则为false。
+
+       ④、int和integer(new或非new)比较，都为true，因为会把Integer自动拆箱为int，其实就是相当于两个int类型比较。
+
+ 
+
+使用Integer对象时，使用它==来比较值是很诱人的，因为这是您将使用的int值。在某些情况下，这似乎有效：
+
+Integer int1_1 = Integer.valueOf("1");
+Integer int1_2 = Integer.valueOf(1);
+
+System.out.println("int1_1 == int1_2: " + (int1_1 == int1_2));          // true
+System.out.println("int1_1 equals int1_2: " + int1_1.equals(int1_2));   // true
+在这里我们创建了两个Integer具有值的对象，1并比较它们（在这种情况下，我们创建了一个来自一个String，一个来自一个int文字，还有其他的选择）。此外，我们观察到两种比较方法（==和equals）都产生true。
+
+当我们选择不同的值时，这种行为会改变：
+
+Integer int2_1 = Integer.valueOf("1000");
+Integer int2_2 = Integer.valueOf(1000);
+
+System.out.println("int2_1 == int2_2: " + (int2_1 == int2_2));          // false
+System.out.println("int2_1 equals int2_2: " + int2_1.equals(int2_2));   // true
+在这种情况下，只有比较equals才能得到正确的结果。
+
+这种行为差异的原因是JVM维护Integer范围为-128到127 的对象的缓存（可以使用系统属性“java.lang.Integer.IntegerCache.high”
+或JVM来覆盖上限值参数“-XX：AutoBoxCacheMax = size”）。对于此范围内的值，Integer.valueOf()将返回缓存的值，而不是创建一个新的值。
+因此，在第一个示例中，Integer.valueOf(1)并且Integer.valueOf("1")调用返回相同的缓存Integer实例。相比之下
+，在第二个示例中Integer.valueOf(1000)，Integer.valueOf("1000")创建并返回了新Integer对象。
+
+
+==参考类型的运算符测试参考相等（即同一对象）。因此，在第一个例子中int1_1 == int2_1是true因为引用是相同的
+。第二个例子int2_1 == int2_2是false，因为引用是不同的。
+
+ 
+
+原因就在Integer的方法 valueOf  
+  
+我们来看这个方法的源码：字节码里调用的就是这个方法：   
+  
+ public static Integer valueOf(int i) {  
+        if(i >= -128 && i <= IntegerCache.high)  
+            return IntegerCache.cache[i + 128];  
+        else  
+            return new Integer(i);  
+    }  
+  
+private static class IntegerCache {  
+        static final int high;  
+        static final Integer cache[];  
+  
+        static {  
+            final int low = -128;  
+  
+            // high value may be configured by property  
+            int h = 127;  
+            if (integerCacheHighPropValue != null) {  
+                // Use Long.decode here to avoid invoking methods that  
+                // require Integer's autoboxing cache to be initialized  
+                int i = Long.decode(integerCacheHighPropValue).intValue();  
+                i = Math.max(i, 127);  
+                // Maximum array size is Integer.MAX_VALUE  
+                h = Math.min(i, Integer.MAX_VALUE - -low);  
+            }  
+            high = h;  
+  
+            cache = new Integer[(high - low) + 1];  
+            int j = low;  
+            for(int k = 0; k < cache.length; k++)  
+                cache[k] = new Integer(j++);  
+        }  
+  
+        private IntegerCache() {}  
+    }  
+  
+Integer里弄了一个缓存，对于在 -128—127 之间的数值，会直接使用该缓存里的对象  
+ 也就是说 Integer c = 3 或者 Integer c = Integer.valueOf(3) ，最终 c 得到的是Integer里的缓存对象  
+ 同理，d也是获得该相同对象因此 进行 c == d 比较时，c和d引用的是同一个对象，因此就true  
+ 而对于321，已经超出缓存范围了，因此 valueOf 方法会生成一个新的Integer对象因此e和f就引用不同 的对象了，进行==比较，当然就false了  
+另外，对Integer的缓存，我们在日常开发时，对于小的整型值应该充分利用Integer的缓存对象省去过多的对象创建，回收的操作，这样会极大的提高程序性能  
+ 
+
+转载自 IntegerCache的妙用和陷阱
+
+考虑下面的小程序，你认为会输出为什么结果？
+
+
+ 
+public class Test {
+
+    public static void main(String[] args) {
+
+ 
+        Integer n1 = 123;
+
+        Integer n2 = 123;
+
+        Integer n3 = 128;
+
+        Integer n4 = 128;
+
+ 
+        System.out.println(n1 == n2);
+
+        System.out.println(n3 == n4);
+
+    }
+
+}
+
+答案如下，请选择刮开：
+
+true
+
+fase
+
+是否和你预想的一致？
+
+我们知道==比较的是对象的引用，那这里为什么会这出这种情况呢？
+
+原理
+
+首先这是JDK在1.5版本中添加的一项新特性，把-128~127的数字缓存起来了，用于提升性能和节省内存。所以这个范围内的自动装箱（相当于调用valueOf(int i)方法）的数字都会从缓存中获取，返回同一个数字，所以现在你理解为什么了吧。同时这也会给我们开发带来预想不到的陷阱，直得注意！！
+
+而我们通过new Integer(1)这样就不会从缓存中获取，大家可以自行测试。
+
+我们来翻看下jdk中Integer的源码
+
+
+
+上面是IntegerCache的源码，把从-128~high放在缓存中
+
+
+
+上面是valueOf的源码，先从缓存中获取，获取不到再new一个返回
+
+从源码里面我们可以看到最小边界是-128，最大边界可以通过-XX:AutoBoxCacheMax进行配置，但也不会大于Integer.MAX_VALUE最大值。
+
